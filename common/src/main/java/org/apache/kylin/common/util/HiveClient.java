@@ -44,6 +44,7 @@ public class HiveClient {
     protected HiveConf hiveConf = null;
     protected Driver driver = null;
     protected HiveMetaStoreClient metaStoreClient = null;
+    protected String type;
 
     public HiveClient() {
         hiveConf = new HiveConf(HiveClient.class);
@@ -153,6 +154,19 @@ public class HiveClient {
             }
         }
         return result;
+    }
+
+    /**
+     *
+     * @param database
+     * @param tableName
+     * @throws Exception
+     */
+
+    public boolean isManagedTable(String database, String tableName)  throws Exception{
+
+        return getMetaStoreClient().getTable(database, tableName).getTableType().toLowerCase().startsWith("managed");
+
     }
 
 }
