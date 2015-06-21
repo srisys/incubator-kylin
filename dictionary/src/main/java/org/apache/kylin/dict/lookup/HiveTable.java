@@ -49,7 +49,7 @@ public class HiveTable implements ReadableTable {
     private String hdfsLocation;
     private FileTable fileTable;
     private HiveClient hiveClient;
-    private boolean needFilePath;
+    private boolean nativeTable;
 
     public HiveTable(MetadataManager metaMgr, String table) {
         TableDesc tableDesc = metaMgr.getTableDesc(table);
@@ -74,8 +74,14 @@ public class HiveTable implements ReadableTable {
     }
 
     private FileTable getFileTable() throws IOException {
-        if (fileTable == null) {
-            fileTable = new FileTable(getHDFSLocation(), nColumns);
+        try {
+            if (fileTable == null) {
+                nativeTable = getHiveClient().isNativeTable(database, hiveTable);
+                fileTable = new FileTable(getHDFSLocation(), nColumns, nativeTable);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e);
         }
         return fileTable;
     }
@@ -98,13 +104,12 @@ public class HiveTable implements ReadableTable {
         String hdfsDir = null;
         try {
             hdfsDir = getHiveClient().getHiveTableLocation(database, hiveTable);
-            needFilePath = getHiveClient().isManagedTable(database, hiveTable);
         } catch (Exception e) {
             e.printStackTrace();
             throw new IOException(e);
         }
 
-        if (needFilePath) {
+        if (nativeTable) {
             FileSystem fs = HadoopUtil.getFileSystem(hdfsDir);
             FileStatus file = findOnlyFile(hdfsDir, fs);
             return file.getPath().toString();
